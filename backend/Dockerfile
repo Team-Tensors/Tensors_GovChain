@@ -1,20 +1,17 @@
-# Use official Node.js image
 FROM node:20-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files first for caching
+# Copy package files first
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies including devDependencies
 RUN npm install
 
-# Copy the rest of the source code
+# Copy source code
 COPY . .
 
-# Expose the backend port
 EXPOSE 5000
 
-# Start the server
-CMD ["npm", "start"]
+# Use dev script with ts-node-dev
+CMD ["npm", "run", "dev"]
