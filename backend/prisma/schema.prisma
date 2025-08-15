@@ -1,0 +1,222 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GovernmentDepartment {
+  department_id       Int @id @default(autoincrement())
+  department_code     String?
+  description         String?
+  created_at          DateTime? @default(now())
+  GovernmentOfficer   GovernmentOfficer[]
+  Service             Service[]
+  Location            Location[]
+  AnalyticsLog        AnalyticsLog[]
+
+  @@map("government_department")
+}
+
+model GovernmentOfficer {
+  officer_id          Int @id @default(autoincrement())
+  department_id       Int
+  employee_id         Int? @unique
+  first_name          String?
+  last_name           String?
+  email               String? @unique
+  position            String?
+  is_active           Boolean?
+  created_at          DateTime? @default(now())
+  GovernmentDepartment GovernmentDepartment @relation(fields: [department_id], references: [department_id])
+  AppointmentHistory  AppointmentHistory[]
+
+  @@map("government_officer")
+}
+
+model Location {
+  location_id         Int @id @default(autoincrement())
+  department_id       Int
+  location_name       String?
+  city                String?
+  postal_code         String?
+  decimal_longitude   Decimal?
+  decimal_latitude    Decimal?
+  directions          String?
+  is_active           Boolean?
+  created_at          DateTime? @default(now())
+  GovernmentDepartment GovernmentDepartment @relation(fields: [department_id], references: [department_id])
+  Appointment         Appointment[]
+
+  @@map("location")
+}
+
+model Service {
+  service_id          Int @id @default(autoincrement())
+  department_id       Int
+  service_name        String?
+  description         String?
+  fee_amount          Decimal?
+  is_active           Boolean?
+  created_at          DateTime? @default(now())
+  GovernmentDepartment GovernmentDepartment @relation(fields: [department_id], references: [department_id])
+  Appointment         Appointment[]
+  DocumentRequirement DocumentRequirement[]
+  TimeSlot            TimeSlot[]
+
+  @@map("service")
+}
+
+model User {
+  user_id             Int @id @default(autoincrement())
+  first_name          String?
+  last_name           String?
+  email               String? @unique
+  phone_number        String?
+  password_hash       String?
+  is_active           Boolean?
+  user_type           String?
+  created_at          DateTime? @default(now())
+  Appointment         Appointment[]
+  UserDocument        UserDocument[]
+  Notification        Notification[]
+  Feedback            Feedback[]
+
+  @@map("user")
+}
+
+model TimeSlot {
+  slot_id             Int @id @default(autoincrement())
+  service_id          Int
+  date                DateTime?
+  start_time          DateTime?
+  end_time            DateTime?
+  max_capacity        Int?
+  is_available        Boolean?
+  created_at          DateTime? @default(now())
+  Service             Service @relation(fields: [service_id], references: [service_id])
+  Appointment         Appointment[]
+
+  @@map("time_slot")
+}
+
+model AnalyticsLog {
+  log_id              Int @id @default(autoincrement())
+  department_id       Int
+  metric_type         String?
+  metric_value        String?
+  created_at          DateTime? @default(now())
+  GovernmentDepartment GovernmentDepartment @relation(fields: [department_id], references: [department_id])
+
+  @@map("analytics_log")
+}
+
+model Appointment {
+  appointment_id      Int @id @default(autoincrement())
+  user_id             Int
+  service_id          Int
+  location_id         Int
+  appointment_date    DateTime?
+  time                DateTime?
+  requirements        String?
+  confirmation_number String?
+  booking_history     String?
+  created_at          DateTime? @default(now())
+  User                User @relation(fields: [user_id], references: [user_id])
+  Service             Service @relation(fields: [service_id], references: [service_id])
+  Location            Location @relation(fields: [location_id], references: [location_id])
+  DocumentRequirement DocumentRequirement[]
+  AppointmentHistory  AppointmentHistory[]
+  Notification        Notification[]
+  Feedback            Feedback[]
+  TimeSlot            TimeSlot[]
+  UserDocument        UserDocument[]
+  
+  @@map("appointment")
+}
+
+model DocumentRequirement {
+  requirement_id      Int @id @default(autoincrement())
+  service_id          Int
+  document_type       String?
+  document_name       String?
+  is_mandatory        Boolean?
+  description         String?
+  created_at          DateTime? @default(now())
+  Service             Service @relation(fields: [service_id], references: [service_id])
+  UserDocument        UserDocument[]
+
+  @@map("document_requirement")
+  Appointment Appointment[]
+}
+
+model Notification {
+  notification_id     Int @id @default(autoincrement())
+  user_id             Int
+  appointment_id      Int
+  notification_type   String?
+  subject             String?
+  delivery_method     String?
+  status              String?
+  created_at          DateTime? @default(now())
+  User                User @relation(fields: [user_id], references: [user_id])
+  Appointment         Appointment @relation(fields: [appointment_id], references: [appointment_id])
+
+  @@map("notification")
+}
+
+model UserDocument {
+  user_document_id    Int @id @default(autoincrement())
+  user_id             Int
+  requirement_id      Int
+  appointment_id      Int
+  original_filename   String?
+  filename            String?
+  file_path           String?
+  upload_status       String?
+  uploaded_at         DateTime? @default(now())
+  User                User @relation(fields: [user_id], references: [user_id])
+  DocumentRequirement DocumentRequirement @relation(fields: [requirement_id], references: [requirement_id])
+  Appointment         Appointment @relation(fields: [appointment_id], references: [appointment_id])
+
+  @@map("user_document")
+}
+
+model AppointmentHistory {
+  history_id          Int @id @default(autoincrement())
+  appointment_id      Int
+  history             String?
+  previous_status     String?
+  new_status          String?
+  changed_by          Int?
+  remarks             String?
+  changed_at          DateTime? @default(now())
+  Appointment         Appointment @relation(fields: [appointment_id], references: [appointment_id])
+  GovernmentOfficer   GovernmentOfficer? @relation(fields: [changed_by], references: [officer_id])
+  
+  @@map("appointment_history")
+}
+
+model Feedback {
+  feedback_id         Int @id @default(autoincrement())
+  user_id             Int
+  appointment_id      Int
+  feedback            String?
+  comments            String?
+  suggestions         String?
+  is_anonymous        Boolean?
+  created_at          DateTime? @default(now())
+  User                User @relation(fields: [user_id], references: [user_id])
+  Appointment         Appointment @relation(fields: [appointment_id], references: [appointment_id])
+  
+  @@map("feedback")
+}
